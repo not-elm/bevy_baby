@@ -9,7 +9,7 @@ use bevy::prelude::{default, Camera, Camera3d, OrthographicProjection, Projectio
 use bevy::prelude::{Commands, Entity, Plugin, Query};
 use bevy::render::camera::{RenderTarget, ScalingMode};
 use bevy::render::view::RenderLayers;
-use bevy::window::{CompositeAlphaMode, CursorOptions, Monitor, PrimaryMonitor, PrimaryWindow, WindowLevel, WindowMode, WindowRef, WindowResolution};
+use bevy::window::{CursorOptions, Monitor, PrimaryMonitor, PrimaryWindow, WindowLevel, WindowMode, WindowRef, WindowResolution};
 
 pub struct ApplicationWindowsSetupPlugin;
 
@@ -88,7 +88,7 @@ fn create_window(size: Vec2) -> Window {
         transparent: true,
         has_shadow: false,
         #[cfg(target_os = "macos")]
-        composite_alpha_mode: CompositeAlphaMode::PostMultiplied,
+        composite_alpha_mode: bevy::window::CompositeAlphaMode::PostMultiplied,
         resizable: false,
         decorations: false,
         window_level: WindowLevel::AlwaysOnTop,

@@ -1,7 +1,11 @@
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(target_os = "windows")]
+mod windows;
 
+#[cfg(target_os = "macos")]
 pub use crate::global_window::macos::*;
+
 use bevy::math::{Rect, Vec2};
 use bevy::prelude::Resource;
 
@@ -26,11 +30,16 @@ impl GlobalWindow {
     /// Returns `true` if the application_windows position has been updated.
     #[inline]
     pub fn update(&self) -> Option<GlobalWindow> {
-        if let Some(updated) = find_window_from_number(self.window_number) {
-            if updated.frame != self.frame {
-                return Some(updated);
+        #[cfg(target_os = "macos")]
+        {
+            //TODO: Not implemented yet.
+            if let Some(updated) = find_window_from_number(self.window_number) {
+                if updated.frame != self.frame {
+                    return Some(updated);
+                }
             }
         }
+
         None
     }
 }
