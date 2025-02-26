@@ -41,7 +41,7 @@ fn main() {
             DefaultPlugins
                 .set(LogPlugin {
                     #[cfg(debug_assertions)]
-                    level: bevy::log::Level::DEBUG,
+                    level: bevy::log::Level::INFO,
                     ..default()
                 })
                 .set(WindowPlugin {

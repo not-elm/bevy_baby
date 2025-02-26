@@ -1,5 +1,7 @@
 mod setup;
 mod hit_test;
+#[cfg(target_os = "windows")]
+mod windows;
 
 use crate::application_windows::hit_test::ApplicationWindowsHitTestPlugin;
 use crate::application_windows::setup::ApplicationWindowsSetupPlugin;
@@ -12,14 +14,18 @@ use bevy::render::view::{NoFrustumCulling, RenderLayers};
 #[reflect(Component)]
 pub struct TargetMonitor(pub Entity);
 
+
 pub struct ApplicationWindowsPlugin;
 
 impl Plugin for ApplicationWindowsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            ApplicationWindowsSetupPlugin,
-            ApplicationWindowsHitTestPlugin,
-        ));
+        app
+            .add_plugins((
+                ApplicationWindowsSetupPlugin,
+                ApplicationWindowsHitTestPlugin,
+                #[cfg(target_os = "windows")]
+                windows::ApplicationWindowOnWindowsPlugin,
+            ));
 
         app
             .world_mut()

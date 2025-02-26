@@ -3,8 +3,9 @@
 /.vscode
 src/mascot/assets/
 /test
-
 /develop/
+
+/.cargo/config.toml
 
 # Logs
 logs
