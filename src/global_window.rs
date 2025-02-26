@@ -6,6 +6,9 @@ mod windows;
 #[cfg(target_os = "macos")]
 pub use crate::global_window::macos::*;
 
+#[cfg(target_os = "windows")]
+pub use crate::global_window::windows::*;
+
 use bevy::math::{Rect, Vec2};
 use bevy::prelude::Resource;
 
