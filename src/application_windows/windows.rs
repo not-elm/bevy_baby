@@ -2,8 +2,15 @@ use crate::application_windows::setup::A;
 use crate::error::AppResult;
 use anyhow::Context;
 use bevy::app::{App, Plugin, Update};
+use bevy::core_pipeline::core_3d::graph::{Core3d, Node3d};
+use bevy::ecs::query::QueryItem;
 use bevy::log::error;
 use bevy::prelude::*;
+use bevy::render::graph::CameraDriverLabel;
+use bevy::render::render_graph::{NodeRunError, RenderGraph, RenderGraphApp, RenderGraphContext, ViewNodeRunner};
+use bevy::render::renderer::RenderContext;
+use bevy::render::view::ExtractedWindows;
+use bevy::render::RenderApp;
 use bevy::utils::HashMap;
 use bevy::window::{Window, WindowWrapper};
 use bevy::winit::WinitWindows;
@@ -18,19 +25,25 @@ pub struct ApplicationWindowOnWindowsPlugin;
 
 impl Plugin for ApplicationWindowOnWindowsPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .register_type::<UninitializedWindow>()
-            .init_non_send_resource::<Surfaces>()
-            .add_systems(Update, (
-                draw_buffer,
-            ));
-
-        app
-            .world_mut()
-            .register_component_hooks::<A>()
-            .on_add(|mut world, entity, _| {
-                world.commands().entity(entity).insert(UninitializedWindow);
-            });
+        // app
+        //     .register_type::<UninitializedWindow>()
+        //     .init_non_send_resource::<Surfaces>()
+        //     .add_systems(Update, (
+        //         draw_buffer,
+        //     ));
+        let mut render_app = app.sub_app_mut(RenderApp);
+        render_app.add_render_graph_node::<ViewNodeRunner<TransparentWindowNode>>(
+            Core3d,
+            Node3d::PostProcessing,
+        );
+        // let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
+        // render_graph.add_node(CameraDriverLabel, TransparentWindowNode);
+        // app
+        //     .world_mut()
+        //     .register_component_hooks::<A>()
+        //     .on_add(|mut world, entity, _| {
+        //         world.commands().entity(entity).insert(UninitializedWindow);
+        //     });
     }
 }
 
@@ -72,8 +85,56 @@ struct UninitializedWindow;
 //     }
 // }
 
+
+#[derive(Default)]
+struct TransparentWindowNode;
+
+
+impl bevy::render::render_graph::ViewNode for TransparentWindowNode {
+    type ViewQuery = ();
+
+    fn run<'w>(&self, graph: &mut RenderGraphContext, render_context: &mut RenderContext<'w>, view_query: QueryItem<'w, Self::ViewQuery>, world: &'w World) -> Result<(), NodeRunError> {
+        let windows = world.resource::<ExtractedWindows>();
+        for (entity, window) in windows.iter() {
+            let Ok(display_context) = softbuffer::Context::new(
+                unsafe {
+                    DisplayHandle::borrow_raw(window.handle.display_handle)
+                }
+            ) else {
+                continue;
+            };
+
+            let Ok(mut surface) = softbuffer::Surface::new(
+                &display_context,
+                unsafe {
+                    WindowHandle::borrow_raw(window.handle.window_handle)
+                },
+            ) else {
+                continue;
+            };
+            surface.resize(
+                NonZeroU32::new(window.physical_width).unwrap(),
+                NonZeroU32::new(window.physical_height).unwrap(),
+            );
+            let Ok(mut buffer) = surface.buffer_mut() else {
+                continue;
+            };
+
+            for y in 0..window.physical_height {
+                for x in 0..window.physical_width {
+                    let index = (y * window.physical_width + x) as usize;
+                    buffer[index] = 0xFF00FF00;
+                }
+            }
+
+            let _ = buffer.present();
+            // println!("DADA");
+        }
+        Ok(())
+    }
+}
+
 fn draw_buffer(
-    mut surfaces: NonSendMut<Surfaces>,
     winit_windows: NonSend<WinitWindows>,
     windows: Query<Entity, With<Window>>,
 ) {

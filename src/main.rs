@@ -54,7 +54,7 @@ fn main() {
                 })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        transparent: false,
+                        transparent: true,
                         decorations: false,
                         ..default()
                     }),
