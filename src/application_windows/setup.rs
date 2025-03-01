@@ -61,15 +61,14 @@ fn setup_windows(
             Name::new(format!("Window({:?})", monitor.physical_position)),
             TargetMonitor(monitor_entity),
             RenderLayers::layer(layer),
-            window,
-            A,
+           // window,
         )).id();
         commands.entity(monitor_entity).insert(RenderLayers::layer(layer));
         spawn_camera(&mut commands, window_entity, layer);
 
-        if primary.is_some() {
-            commands.entity(window_entity).insert(PrimaryWindow);
-        }
+        // if primary.is_some() {
+        //     commands.entity(window_entity).insert(PrimaryWindow);
+        // }
     }
 }
 
@@ -83,7 +82,8 @@ fn spawn_camera(
         RenderLayers::layer(camera_layer),
         Camera3d::default(),
         Camera {
-            target: RenderTarget::Window(WindowRef::Entity(window_entity)),
+           // target: RenderTarget::Window(WindowRef::Entity(window_entity)),
+            hdr: true,
             ..default()
         },
         Projection::from(OrthographicProjection {
@@ -109,7 +109,7 @@ fn create_window(size: Vec2) -> Window {
         titlebar_shown: true,
         mode: WindowMode::Windowed,
         cursor_options: CursorOptions {
-            hit_test: true,
+            hit_test: false,
             ..default()
         },
         ..default()

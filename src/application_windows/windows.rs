@@ -8,11 +8,11 @@ use bevy::log::error;
 use bevy::prelude::*;
 use bevy::render::graph::CameraDriverLabel;
 use bevy::render::render_graph::{NodeRunError, RenderGraph, RenderGraphApp, RenderGraphContext, ViewNodeRunner};
-use bevy::render::renderer::RenderContext;
+use bevy::render::renderer::{render_system, RenderContext, WgpuWrapper};
 use bevy::render::view::ExtractedWindows;
-use bevy::render::RenderApp;
+use bevy::render::{Render, RenderApp};
 use bevy::utils::HashMap;
-use bevy::window::{Window, WindowWrapper};
+use bevy::window::{PrimaryWindow, Window, WindowWrapper};
 use bevy::winit::WinitWindows;
 use std::num::NonZeroU32;
 use windows::Win32::Foundation::{COLORREF, HWND};
@@ -31,19 +31,26 @@ impl Plugin for ApplicationWindowOnWindowsPlugin {
         //     .add_systems(Update, (
         //         draw_buffer,
         //     ));
+        app
+        .add_systems(Startup, |mut commands: Commands, window: Query<Entity, With<PrimaryWindow>>|{
+            commands.entity(window.single()).insert(A);
+        })
+        .add_systems(Update, setup_window_to_transparent);
         let mut render_app = app.sub_app_mut(RenderApp);
-        render_app.add_render_graph_node::<ViewNodeRunner<TransparentWindowNode>>(
-            Core3d,
-            Node3d::PostProcessing,
-        );
+        // render_app.add_render_graph_node::<ViewNodeRunner<TransparentWindowNode>>(
+        //     Core3d,
+        //     Node3d::PostProcessing,
+        // );
+        render_app.add_systems(bevy::render::Render, draw_buffer
+            .after(render_system));
         // let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
         // render_graph.add_node(CameraDriverLabel, TransparentWindowNode);
-        // app
-        //     .world_mut()
-        //     .register_component_hooks::<A>()
-        //     .on_add(|mut world, entity, _| {
-        //         world.commands().entity(entity).insert(UninitializedWindow);
-        //     });
+        app
+            .world_mut()
+            .register_component_hooks::<A>()
+            .on_add(|mut world, entity, _| {
+                world.commands().entity(entity).insert(UninitializedWindow);
+            });
     }
 }
 
@@ -56,34 +63,19 @@ pub struct DisplayContext(softbuffer::Context<DisplayHandle<'static>>);
 #[reflect(Component)]
 struct UninitializedWindow;
 
-// fn setup_window_to_transparent(
-//     mut commands: Commands,
-//     mut surfaces: NonSendMut<Surfaces>,
-//     winit_windows: NonSend<WinitWindows>,
-//     windows: Query<Entity, With<UninitializedWindow>>,
-// ) {
-//     for window in windows.iter() {
-//         let Some(winit_window) = winit_windows.get_window(window) else {
-//             return;
-//         };
-//         let Some(display_context) = winit_window.display_handle().ok()
-//             .and_then(|display_handle| softbuffer::Context::new(display_handle).ok())
-//         else {
-//             return;
-//         };
-//         let Ok(mut surface) = softbuffer::Surface::new(
-//             &display_context,
-//             winit_window.window_handle().unwrap(),
-//         ) else {
-//             return;
-//         };
-//         surfaces.0.insert(window, surface);
-//         // if let Err(e) = set_transparent(winit_window) {
-//         //     error!("Failed to set transparent: {:?}", e);
-//         // }
-//         commands.entity(window).remove::<UninitializedWindow>();
-//     }
-// }
+fn setup_window_to_transparent(
+    mut commands: Commands,
+    winit_windows: NonSend<WinitWindows>,
+    windows: Query<Entity, With<A>>,
+) {
+    for window in windows.iter() {
+        let Some(winit_window) = winit_windows.get_window(window) else {
+            continue;
+        };
+        set_transparent(winit_window).unwrap();
+        commands.entity(window).remove::<A>();
+    }
+}
 
 
 #[derive(Default)]
@@ -128,48 +120,45 @@ impl bevy::render::render_graph::ViewNode for TransparentWindowNode {
             }
 
             let _ = buffer.present();
-            // println!("DADA");
         }
         Ok(())
     }
 }
 
 fn draw_buffer(
-    winit_windows: NonSend<WinitWindows>,
-    windows: Query<Entity, With<Window>>,
+    windows: Res<ExtractedWindows>,
 ) {
-    for entity in windows.iter() {
-        let Some(winit_window) = winit_windows.get_window(entity) else {
-            return;
+    for (entity, window) in windows.iter() {
+        let Ok(display_context) = softbuffer::Context::new(
+            unsafe {
+                DisplayHandle::borrow_raw(window.handle.display_handle)
+            }
+        ) else {
+            continue;
         };
-        let Some(display_context) = winit_window.display_handle().ok()
-            .and_then(|display_handle| softbuffer::Context::new(display_handle).ok())
-        else {
-            return;
-        };
+
         let Ok(mut surface) = softbuffer::Surface::new(
             &display_context,
-            winit_window.window_handle().unwrap(),
+            unsafe {
+                WindowHandle::borrow_raw(window.handle.window_handle)
+            },
         ) else {
-            return;
+            continue;
         };
         surface.resize(
-            NonZeroU32::new(winit_window.inner_size().width).unwrap(),
-            NonZeroU32::new(winit_window.inner_size().height).unwrap(),
+            NonZeroU32::new(window.physical_width).unwrap(),
+            NonZeroU32::new(window.physical_height).unwrap(),
         );
         let Ok(mut buffer) = surface.buffer_mut() else {
-            return;
+            continue;
         };
 
-        let safe_area_size = winit_window.inner_size();
-        for y in 0..safe_area_size.height {
-            for x in 0..safe_area_size.width {
-                let index = (y * safe_area_size.width + x) as usize;
-                buffer[index] = 0x00000000;
+        for y in 0..window.physical_height {
+            for x in 0..window.physical_width {
+                let index = (y * window.physical_width + x) as usize;
+                buffer[index] = 0xFF000000;
             }
         }
-
-        winit_window.pre_present_notify();
         let _ = buffer.present();
     }
 }
@@ -185,15 +174,16 @@ fn set_transparent(
 
 
         // SetWindowLongW(hwnd, GWL_STYLE, WS_POPUP.0 as i32);
-        // SetWindowLongW(hwnd, GWL_EXSTYLE, WS_EX_LAYERD);
-        // SetLayeredWindowAttributes(hwnd, COLORREF(0), 0, LWA_COLORKEY);
+        SetWindowLongW(hwnd, GWL_EXSTYLE, WS_EX_LAYERD | WS_EX_TRANSPARENT);
+        SetLayeredWindowAttributes(hwnd, COLORREF(0x00000000), 0, LWA_COLORKEY);
         // SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
         let mut margin = windows::Win32::UI::Controls::MARGINS {
             cxLeftWidth: -1,
-            cxRightWidth: -1,
-            cyTopHeight: -1,
-            cyBottomHeight: -1,
+            cxRightWidth: 0,
+            cyTopHeight: 0,
+            cyBottomHeight: 0,
         };
+        println!("Transparent");
         windows::Win32::Graphics::Dwm::DwmExtendFrameIntoClientArea(
             hwnd,
             &mut margin,

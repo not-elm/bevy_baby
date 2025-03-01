@@ -30,7 +30,7 @@ use bevy::log::LogPlugin;
 use bevy::prelude::{default, AmbientLight, ClearColor, MeshPickingPlugin, WindowPlugin};
 use bevy::render::settings::{Backends, RenderCreation, WgpuSettings};
 use bevy::render::RenderPlugin;
-use bevy::window::Window;
+use bevy::window::{CursorOptions, Window};
 use bevy::DefaultPlugins;
 use bevy_webview_wry::api::{AllLogPlugins, AppExitApiPlugin};
 use bevy_webview_wry::prelude::AllDialogPlugins;
@@ -44,18 +44,21 @@ fn main() {
             DefaultPlugins
                 .set(LogPlugin {
                     #[cfg(debug_assertions)]
-                    level: bevy::log::Level::TRACE,
+                    level: bevy::log::Level::INFO,
                     ..default()
                 })
                 .set(RenderPlugin {
                     render_creation: RenderCreation::Automatic(s),
-                    synchronous_pipeline_compilation: true,
                     ..default()
                 })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         transparent: true,
                         decorations: false,
+                        cursor_options: CursorOptions{
+                            hit_test: false,
+                            ..default()
+                        },
                         ..default()
                     }),
                     ..default()
@@ -86,7 +89,7 @@ fn main() {
             brightness: 3000.0,
             ..default()
         })
-        .insert_resource(ClearColor(Color::NONE))
+        .insert_resource(ClearColor(Color::BLACK))
         .run();
 }
 

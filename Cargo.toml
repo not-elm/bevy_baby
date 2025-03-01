@@ -59,5 +59,6 @@ windows = { version = "0.60.0", features = [
 default = []
 develop = ["dep:bevy-inspector-egui"]
 
-#[patch.crates-io]
+[patch.crates-io]
+bevy = { path = "../bevy" }
 #winit = { git = 'https://github.com/rust-windowing/winit' }
