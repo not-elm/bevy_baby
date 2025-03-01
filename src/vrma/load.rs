@@ -197,8 +197,8 @@ fn spawn_vrma(
             }
         };
 
-        #[cfg(feature = "develop")]
-        create_vrma_json_for_debug(&extensions, action);
+        // #[cfg(feature = "develop")]
+        // create_vrma_json_for_debug(&extensions, action);
 
         commands.entity(mascot_entity).with_child((
             Vrma,

@@ -5,7 +5,7 @@ use bevy::app::{App, Startup};
 use bevy::core::Name;
 use bevy::log::debug;
 use bevy::math::Vec2;
-use bevy::prelude::{default, Camera, Camera3d, OrthographicProjection, Projection, Res, Transform, Window};
+use bevy::prelude::*;
 use bevy::prelude::{Commands, Entity, Plugin, Query};
 use bevy::render::camera::{RenderTarget, ScalingMode};
 use bevy::render::view::RenderLayers;
@@ -17,8 +17,21 @@ impl Plugin for ApplicationWindowsSetupPlugin {
     fn build(&self, app: &mut App) {
         app
             .register_type::<TargetMonitor>()
-            .add_systems(Startup, setup_windows);
+            .add_systems(Startup, (
+                // remove_primary,
+                setup_windows,
+            ).chain());
     }
+}
+
+#[derive(Component)]
+pub struct A;
+
+fn remove_primary(
+    mut commands: Commands,
+    window: Query<Entity, With<PrimaryWindow>>,
+) {
+    commands.entity(window.single()).despawn();
 }
 
 fn setup_windows(
@@ -42,7 +55,6 @@ fn setup_windows(
         debug!("Monitor({:?}) {:?}", monitor.physical_position, monitor.physical_size());
         window.position.set((monitor.physical_position.as_vec2() * scale_factor).as_ivec2());
         let size = monitor.physical_size();
-        window.resolution.set_physical_resolution(size.x, size.y);
         window.resolution.set_scale_factor(monitor.scale_factor as f32);
 
         let window_entity = commands.spawn((
@@ -50,6 +62,7 @@ fn setup_windows(
             TargetMonitor(monitor_entity),
             RenderLayers::layer(layer),
             window,
+            A,
         )).id();
         commands.entity(monitor_entity).insert(RenderLayers::layer(layer));
         spawn_camera(&mut commands, window_entity, layer);
@@ -85,18 +98,18 @@ fn spawn_camera(
 
 fn create_window(size: Vec2) -> Window {
     Window {
-        transparent: true,
+        // transparent: true,
         has_shadow: false,
         #[cfg(target_os = "macos")]
         composite_alpha_mode: bevy::window::CompositeAlphaMode::PostMultiplied,
-        resizable: false,
-        decorations: false,
-        window_level: WindowLevel::AlwaysOnTop,
-        resolution: WindowResolution::new(size.x, size.y),
-        titlebar_shown: false,
+        resizable: true,
+        decorations: true,
+        window_level: WindowLevel::Normal,
+        resolution: WindowResolution::new(800., 800.),
+        titlebar_shown: true,
         mode: WindowMode::Windowed,
         cursor_options: CursorOptions {
-            hit_test: false,
+            hit_test: true,
             ..default()
         },
         ..default()

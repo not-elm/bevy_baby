@@ -14,9 +14,9 @@ pub struct MascotVisibilityPlugin;
 impl Plugin for MascotVisibilityPlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_state::<MascotVisibilityState>()
-            .add_systems(OnEnter(MascotVisibilityState::Visible), set_visible::<true>)
-            .add_systems(OnEnter(MascotVisibilityState::Invisible), set_visible::<false>);
+            .init_state::<MascotVisibilityState>();
+        // .add_systems(OnEnter(MascotVisibilityState::Visible), set_visible::<true>)
+        // .add_systems(OnEnter(MascotVisibilityState::Invisible), set_visible::<false>);
     }
 }
 

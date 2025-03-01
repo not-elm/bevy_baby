@@ -1,13 +1,15 @@
+use crate::application_windows::setup::A;
 use crate::error::AppResult;
 use anyhow::Context;
 use bevy::app::{App, Plugin, Update};
 use bevy::log::error;
 use bevy::prelude::*;
-use bevy::window::Window;
+use bevy::window::{Window, WindowWrapper};
 use bevy::winit::WinitWindows;
-use windows::Win32::Foundation::HWND;
-use windows::Win32::UI::WindowsAndMessaging::{SetWindowLongW, GWL_EXSTYLE, GWL_STYLE, WS_POPUP};
-use winit::raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use windows::Win32::Foundation::{COLORREF, HWND};
+use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, SetWindowLongW, GWL_EXSTYLE, GWL_STYLE, LWA_ALPHA, LWA_COLORKEY, WS_POPUP};
+use winit::raw_window_handle::{DisplayHandle, HasDisplayHandle, HasRawWindowHandle, HasWindowHandle, RawWindowHandle};
+use winit::window::Theme;
 
 pub struct ApplicationWindowOnWindowsPlugin;
 
@@ -16,16 +18,22 @@ impl Plugin for ApplicationWindowOnWindowsPlugin {
     fn build(&self, app: &mut App) {
         app
             .register_type::<UninitializedWindow>()
-            .add_systems(Update, setup_window_to_transparent);
+            .add_systems(Update, (
+                setup_window_to_transparent,
+                draw_buffer,
+            ));
 
         app
             .world_mut()
-            .register_component_hooks::<Window>()
+            .register_component_hooks::<A>()
             .on_add(|mut world, entity, _| {
                 world.commands().entity(entity).insert(UninitializedWindow);
             });
     }
 }
+
+#[derive(Component)]
+pub struct DisplayContext(softbuffer::Context<DisplayHandle<'static>>);
 
 #[derive(Debug, Component, Eq, PartialEq, Copy, Clone, Reflect)]
 #[reflect(Component)]
@@ -37,14 +45,50 @@ fn setup_window_to_transparent(
     windows: Query<Entity, With<UninitializedWindow>>,
 ) {
     for window in windows.iter() {
-        let Some(winit_window) = winit_windows.get_window(window) else {
+        let Some(display_context) = winit_windows
+            .get_window(window)
+            .and_then(|winit_window| winit_window.display_handle().ok())
+            .and_then(|display_handle| softbuffer::Context::new(display_handle).ok())
+        else {
             return;
         };
-        if let Err(e) = set_transparent(winit_window) {
-            error!("Failed to set transparent: {:?}", e);
-        }
+        commands.entity(window).insert(DisplayContext(display_context));
+        // if let Err(e) = set_transparent(winit_window) {
+        //     error!("Failed to set transparent: {:?}", e);
+        // }
         commands.entity(window).remove::<UninitializedWindow>();
     }
+}
+
+fn draw_buffer(
+    winit_windows: NonSend<WinitWindows>,
+    windows: Query<(Entity, &DisplayContext)>,
+) {
+    windows.par_iter().for_each(|(entity, context)| {
+        let Some(winit_window) = winit_windows.get_window(entity) else {
+            return;
+        };
+        let Ok(mut surface) = softbuffer::Surface::new(
+            &context.0,
+            winit_window,
+        ) else {
+            return;
+        };
+        let Ok(mut buffer) = surface.buffer_mut() else {
+            return;
+        };
+
+        let safe_area_size = winit_window.inner_size();
+        for y in 0..safe_area_size.height {
+            for x in 0..safe_area_size.width {
+                let index = (y * safe_area_size.width + x) as usize;
+                buffer[index] = 0x00000000;
+            }
+        }
+
+        winit_window.pre_present_notify();
+        let _ = buffer.present();
+    });
 }
 
 fn set_transparent(
@@ -56,9 +100,11 @@ fn set_transparent(
         const WS_EX_LAYERD: i32 = 0x080000;
         const WS_EX_TRANSPARENT: i32 = 0x00000020;
 
-        SetWindowLongW(hwnd, GWL_STYLE, WS_POPUP.0 as i32);
-        SetWindowLongW(hwnd, GWL_EXSTYLE, WS_EX_LAYERD | WS_EX_TRANSPARENT);
 
+        // SetWindowLongW(hwnd, GWL_STYLE, WS_POPUP.0 as i32);
+        // SetWindowLongW(hwnd, GWL_EXSTYLE, WS_EX_LAYERD);
+        // SetLayeredWindowAttributes(hwnd, COLORREF(0), 0, LWA_COLORKEY);
+        // SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
         let mut margin = windows::Win32::UI::Controls::MARGINS {
             cxLeftWidth: -1,
             cxRightWidth: -1,

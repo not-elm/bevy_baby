@@ -21,31 +21,42 @@ use crate::application_windows::ApplicationWindowsPlugin;
 use crate::global_mouse::GlobalMousePlugin;
 use crate::mascot::DesktopMascotPlugin;
 use crate::menu::MenuPlugin;
-use crate::power_state::PowerStatePlugin;
 use crate::settings::AppSettingsPlugin;
 use crate::vrm::VrmPlugin;
 use crate::vrma::VrmaPlugin;
 use bevy::app::{App, PluginGroup};
-use bevy::color::Color;
 use bevy::log::LogPlugin;
-use bevy::prelude::{default, AmbientLight, ClearColor, MeshPickingPlugin};
-use bevy::window::WindowPlugin;
+use bevy::prelude::{default, AmbientLight, MeshPickingPlugin, WindowPlugin};
+use bevy::render::settings::{Backends, RenderCreation, WgpuSettings};
+use bevy::render::RenderPlugin;
+use bevy::window::Window;
 use bevy::DefaultPlugins;
 use bevy_webview_wry::api::{AllLogPlugins, AppExitApiPlugin};
 use bevy_webview_wry::prelude::AllDialogPlugins;
 use bevy_webview_wry::WebviewWryPlugin;
 
 fn main() {
+    let mut s = WgpuSettings::default();
+    s.backends.replace(Backends::METAL);
     App::new()
         .add_plugins((
             DefaultPlugins
                 .set(LogPlugin {
                     #[cfg(debug_assertions)]
-                    level: bevy::log::Level::INFO,
+                    level: bevy::log::Level::TRACE,
+                    ..default()
+                })
+                .set(RenderPlugin {
+                    render_creation: RenderCreation::Automatic(s),
+                    synchronous_pipeline_compilation: true,
                     ..default()
                 })
                 .set(WindowPlugin {
-                    primary_window: None,
+                    primary_window: Some(Window {
+                        transparent: false,
+                        decorations: false,
+                        ..default()
+                    }),
                     ..default()
                 }),
             WebviewWryPlugin {
@@ -63,7 +74,7 @@ fn main() {
         .add_plugins((
             MenuPlugin,
             DesktopMascotPlugin,
-            PowerStatePlugin,
+            // PowerStatePlugin,
             VrmPlugin,
             VrmaPlugin,
             ApplicationWindowsPlugin,
@@ -74,7 +85,7 @@ fn main() {
             brightness: 3000.0,
             ..default()
         })
-        .insert_resource(ClearColor(Color::NONE))
+        // .insert_resource(ClearColor(Color::NONE))
         .run();
 }
 

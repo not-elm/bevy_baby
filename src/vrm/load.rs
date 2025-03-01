@@ -22,12 +22,12 @@ impl Plugin for VrmLoadPlugin {
             .add_event::<RequestLoadModels>()
             .add_systems(PreStartup, (
                 start_load_models_folder,
-                start_watching,
+                // start_watching,
             ).chain())
             .add_systems(Update, (
                 prepare_initial_loading,
                 load_models.run_if(on_event::<RequestLoadModels>),
-                receive_events,
+                // receive_events,
             ));
     }
 }
