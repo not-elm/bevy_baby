@@ -64,13 +64,13 @@ fn draw_buffer(
     winit_windows: NonSend<WinitWindows>,
     windows: Query<(Entity, &DisplayContext)>,
 ) {
-    windows.par_iter().for_each(|(entity, context)| {
+    for (entity, context) in windows.iter() {
         let Some(winit_window) = winit_windows.get_window(entity) else {
             return;
         };
         let Ok(mut surface) = softbuffer::Surface::new(
             &context.0,
-            winit_window,
+            winit_window.window_handle().unwrap(),
         ) else {
             return;
         };
@@ -88,7 +88,7 @@ fn draw_buffer(
 
         winit_window.pre_present_notify();
         let _ = buffer.present();
-    });
+    }
 }
 
 fn set_transparent(

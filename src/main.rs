@@ -37,7 +37,7 @@ use bevy_webview_wry::WebviewWryPlugin;
 
 fn main() {
     let mut s = WgpuSettings::default();
-    s.backends.replace(Backends::METAL);
+    s.backends.replace(Backends::VULKAN);
     App::new()
         .add_plugins((
             DefaultPlugins
