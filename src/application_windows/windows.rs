@@ -4,11 +4,12 @@ use anyhow::Context;
 use bevy::app::{App, Plugin, Update};
 use bevy::log::error;
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use bevy::window::{Window, WindowWrapper};
 use bevy::winit::WinitWindows;
 use windows::Win32::Foundation::{COLORREF, HWND};
 use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, SetWindowLongW, GWL_EXSTYLE, GWL_STYLE, LWA_ALPHA, LWA_COLORKEY, WS_POPUP};
-use winit::raw_window_handle::{DisplayHandle, HasDisplayHandle, HasRawWindowHandle, HasWindowHandle, RawWindowHandle};
+use winit::raw_window_handle::{DisplayHandle, HasDisplayHandle, HasRawWindowHandle, HasWindowHandle, RawWindowHandle, WindowHandle};
 use winit::window::Theme;
 
 pub struct ApplicationWindowOnWindowsPlugin;
@@ -18,8 +19,8 @@ impl Plugin for ApplicationWindowOnWindowsPlugin {
     fn build(&self, app: &mut App) {
         app
             .register_type::<UninitializedWindow>()
+            .init_non_send_resource::<Surfaces>()
             .add_systems(Update, (
-                setup_window_to_transparent,
                 draw_buffer,
             ));
 
@@ -32,44 +33,60 @@ impl Plugin for ApplicationWindowOnWindowsPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Default)]
+pub struct Surfaces(HashMap<Entity, softbuffer::Surface<DisplayHandle<'static>, WindowHandle<'static>>>);
+
 pub struct DisplayContext(softbuffer::Context<DisplayHandle<'static>>);
 
 #[derive(Debug, Component, Eq, PartialEq, Copy, Clone, Reflect)]
 #[reflect(Component)]
 struct UninitializedWindow;
 
-fn setup_window_to_transparent(
-    mut commands: Commands,
+// fn setup_window_to_transparent(
+//     mut commands: Commands,
+//     mut surfaces: NonSendMut<Surfaces>,
+//     winit_windows: NonSend<WinitWindows>,
+//     windows: Query<Entity, With<UninitializedWindow>>,
+// ) {
+//     for window in windows.iter() {
+//         let Some(winit_window) = winit_windows.get_window(window) else {
+//             return;
+//         };
+//         let Some(display_context) = winit_window.display_handle().ok()
+//             .and_then(|display_handle| softbuffer::Context::new(display_handle).ok())
+//         else {
+//             return;
+//         };
+//         let Ok(mut surface) = softbuffer::Surface::new(
+//             &display_context,
+//             winit_window.window_handle().unwrap(),
+//         ) else {
+//             return;
+//         };
+//         surfaces.0.insert(window, surface);
+//         // if let Err(e) = set_transparent(winit_window) {
+//         //     error!("Failed to set transparent: {:?}", e);
+//         // }
+//         commands.entity(window).remove::<UninitializedWindow>();
+//     }
+// }
+
+fn draw_buffer(
+    mut surfaces: NonSendMut<Surfaces>,
     winit_windows: NonSend<WinitWindows>,
-    windows: Query<Entity, With<UninitializedWindow>>,
+    windows: Query<Entity, With<Window>>,
 ) {
-    for window in windows.iter() {
-        let Some(display_context) = winit_windows
-            .get_window(window)
-            .and_then(|winit_window| winit_window.display_handle().ok())
+    for entity in windows.iter() {
+        let Some(winit_window) = winit_windows.get_window(entity) else {
+            return;
+        };
+        let Some(display_context) = winit_window.display_handle().ok()
             .and_then(|display_handle| softbuffer::Context::new(display_handle).ok())
         else {
             return;
         };
-        commands.entity(window).insert(DisplayContext(display_context));
-        // if let Err(e) = set_transparent(winit_window) {
-        //     error!("Failed to set transparent: {:?}", e);
-        // }
-        commands.entity(window).remove::<UninitializedWindow>();
-    }
-}
-
-fn draw_buffer(
-    winit_windows: NonSend<WinitWindows>,
-    windows: Query<(Entity, &DisplayContext)>,
-) {
-    for (entity, context) in windows.iter() {
-        let Some(winit_window) = winit_windows.get_window(entity) else {
-            return;
-        };
         let Ok(mut surface) = softbuffer::Surface::new(
-            &context.0,
+            &display_context,
             winit_window.window_handle().unwrap(),
         ) else {
             return;
