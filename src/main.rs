@@ -25,8 +25,9 @@ use crate::settings::AppSettingsPlugin;
 use crate::vrm::VrmPlugin;
 use crate::vrma::VrmaPlugin;
 use bevy::app::{App, PluginGroup};
+use bevy::color::Color;
 use bevy::log::LogPlugin;
-use bevy::prelude::{default, AmbientLight, MeshPickingPlugin, WindowPlugin};
+use bevy::prelude::{default, AmbientLight, ClearColor, MeshPickingPlugin, WindowPlugin};
 use bevy::render::settings::{Backends, RenderCreation, WgpuSettings};
 use bevy::render::RenderPlugin;
 use bevy::window::Window;
@@ -37,7 +38,7 @@ use bevy_webview_wry::WebviewWryPlugin;
 
 fn main() {
     let mut s = WgpuSettings::default();
-    s.backends.replace(Backends::VULKAN);
+    s.backends.replace(Backends::VULKAN | Backends::DX12);
     App::new()
         .add_plugins((
             DefaultPlugins
@@ -85,7 +86,7 @@ fn main() {
             brightness: 3000.0,
             ..default()
         })
-        // .insert_resource(ClearColor(Color::NONE))
+        .insert_resource(ClearColor(Color::NONE))
         .run();
 }
 

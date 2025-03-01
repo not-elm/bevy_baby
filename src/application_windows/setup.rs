@@ -98,12 +98,12 @@ fn spawn_camera(
 
 fn create_window(size: Vec2) -> Window {
     Window {
-        // transparent: true,
+        transparent: true,
         has_shadow: false,
         #[cfg(target_os = "macos")]
         composite_alpha_mode: bevy::window::CompositeAlphaMode::PostMultiplied,
         resizable: true,
-        decorations: true,
+        decorations: false,
         window_level: WindowLevel::Normal,
         resolution: WindowResolution::new(800., 800.),
         titlebar_shown: true,

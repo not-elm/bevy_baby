@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy::utils::HashMap;
 use bevy::window::{Window, WindowWrapper};
 use bevy::winit::WinitWindows;
+use std::num::NonZeroU32;
 use windows::Win32::Foundation::{COLORREF, HWND};
 use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, SetWindowLongW, GWL_EXSTYLE, GWL_STYLE, LWA_ALPHA, LWA_COLORKEY, WS_POPUP};
 use winit::raw_window_handle::{DisplayHandle, HasDisplayHandle, HasRawWindowHandle, HasWindowHandle, RawWindowHandle, WindowHandle};
@@ -91,6 +92,10 @@ fn draw_buffer(
         ) else {
             return;
         };
+        surface.resize(
+            NonZeroU32::new(winit_window.inner_size().width).unwrap(),
+            NonZeroU32::new(winit_window.inner_size().height).unwrap(),
+        );
         let Ok(mut buffer) = surface.buffer_mut() else {
             return;
         };
