@@ -1,46 +1,74 @@
 name: CI
-run-name: Test CI
-on:
-  push:
-  workflow_dispatch:
 
-env:
-  RUSTFLAGS: '-D warnings'
-  RUSTDOCFLAGS: '--cfg docsrs -D warnings'
+on:
+  pull_request:
+  push:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-latest ]
+        os: [ windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
-          toolchain: 'nightly'
-          components: 'clippy,rust-docs'
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
       - name: Install alsa and udev
-        run: |
-          sudo apt-get update && sudo apt-get install --no-install-recommends libasound2-dev \
-            libudev-dev \
-            libasound2-dev \
-            libwebkit2gtk-4.1-dev \
-            pkg-config \
-            libudev-dev \
-            libssl-dev \
-            build-essential \
-            libxdo-dev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
         if: runner.os == 'linux'
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Clippy all features
-        run: cargo clippy --all-features --tests -- -D warnings
-
-      - name: Test all features
-        run: cargo test --all-features
+      - name: Build & run tests
+        run: cargo test
+  all-doc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-latest-cargo-all-doc-tests-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Install alsa and udev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Run doc tests with all features (this also compiles README examples)
+        run: cargo test --doc --all-features
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-latest-cargo-lint-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Install alsa and udev
+        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -Dwarnings
+      - name: Check format
+        run: cargo fmt --all -- --check

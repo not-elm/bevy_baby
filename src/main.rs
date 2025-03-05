@@ -2,7 +2,8 @@
     clippy::type_complexity,
     clippy::too_many_arguments,
 )]
-#![cfg_attr(all(target_os="windows", not(debug_assertions)), windows_subsystem="windows")]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod application_windows;
 mod mascot;
 mod global_window;
@@ -44,21 +45,21 @@ fn main() {
                 .set(LogPlugin {
                     #[cfg(debug_assertions)]
                     level: bevy::log::Level::DEBUG,
-                    #[cfg(target_os="windows")]
+                    #[cfg(target_os = "windows")]
                     filter: "wgpu_hal=off".to_string(),
                     ..default()
                 })
                 .set(WindowPlugin {
                     // Windows won't start without PrimaryWindow for some reason.
-                    #[cfg(not(target_os="windows"))]
+                    #[cfg(not(target_os = "windows"))]
                     primary_window: None,
                     ..default()
                 })
-                .set(RenderPlugin{
-                    render_creation: RenderCreation::Automatic(WgpuSettings{
+                .set(RenderPlugin {
+                    render_creation: RenderCreation::Automatic(WgpuSettings {
                         // On Windows, neither on `VULKAN` and `DX12` don't work transparency.
                         // Ensure not certainty that this will work correctly on all devices.
-                        #[cfg(target_os="windows")]
+                        #[cfg(target_os = "windows")]
                         backends: Some(bevy::render::settings::Backends::GL),
                         ..default()
                     }),
