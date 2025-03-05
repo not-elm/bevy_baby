@@ -5,7 +5,7 @@
 > [!CAUTION]
 > This crate is in an early stage of development and may undergo breaking changes.
 
-## **Overview**
+## Overview
 
 **bevy_baby** is a desktop mascot application built using [Bevy](https://github.com/bevyengine/bevy), a fast and
 lightweight game engine written in Rust that utilizes the **ECS (Entity Component System) architecture**.
@@ -25,7 +25,7 @@ If you're using Bevy or planning to start, check them out:
 
 ---
 
-## **Purpose & Goals**
+## Purpose & Goals
 
 This project was started as a **learning initiative** for:
 
@@ -38,7 +38,7 @@ experts are highly appreciated!
 
 ---
 
-## **Supported Platforms**
+## Supported Platforms
 
 Currently, **Windows is supported**, and macOS support is planned.
 
@@ -55,13 +55,13 @@ Currently, **Windows is supported**, and macOS support is planned.
 
 ---
 
-## **Installation & Usage**
+## Installation & Usage
 
 🚧 **Coming soon...**
 
 ---
 
-## **Animation Actions & Transitions**
+## Animation Actions & Transitions
 
 This application uses **animation actions** to define different mascot behaviors.  
 Each action belongs to a **group**, and animations are stored in `assets/animations`.
@@ -82,7 +82,7 @@ assets/animations/
 
 ![action_group](./docs/action_group.drawio.png)
 
-### **Action Transition Types**
+### Action Transition Types
 
 Actions can transition between each other using different transition modes:
 
@@ -99,29 +99,29 @@ Actions can transition between each other using different transition modes:
 
 ---
 
-## **Future Plans (TODO)**
+## Future Plans (TODO)
 
-### **📌 Planned Features**
+### Planned Features
 
 - [ ] **Complete Documentation**
 - [ ] **Local HTTP Server for External Control**
 - [ ] **Enhanced Action System** (scale changes, additional movements)
 - [ ] **Support Look At retargeting**
 
-### **📡 Local HTTP Server**
+### Local HTTP Server
 
 - Implement a **local HTTP server** to allow external applications to control mascot actions.
 - Example: **Twitch API integration** to trigger animations based on chat events.
 
 ---
 
-## **Using Custom VRM Models**
+## Using Custom VRM Models
 
 By default, **VRM models and animations (VRMA) are exported from Blender**.  
 However, **VRM models exported from Unity may have different coordinate systems or bone structures**, causing unexpected
 deformations.
 
-### **How to Export from Blender**
+### How to Export from Blender
 
 To ensure compatibility, **export VRM models using Blender** with the following add-ons:
 
@@ -130,20 +130,21 @@ To ensure compatibility, **export VRM models using Blender** with the following 
 
 ---
 
-## **Credits**
+## Credits
 
 - [VRM Sample Model](https://vroid.pixiv.help/hc/ja/articles/4402394424089-AvatarSample-A-Z)
 - Character animation credits to **pixiv Inc.'s VRoid Project**
+- Uses [bevy_game_template](https://github.com/NiklasEi/bevy_game_template) to ci and build packages.
 
 ---
 
-## **License**
+## License
 
 This project is released under the **MIT License**.
 
 ---
 
-## **Contact**
+## Contact
 
 📢 **For questions & contributions:**
 
