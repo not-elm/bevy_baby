@@ -39,7 +39,10 @@ jobs:
       - name: Build & run tests
         run: cargo test
   lint:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -55,8 +58,6 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
-      - name: Install alsa and udev
-        run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libgtk2.0-dev
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --all-features -- -Dwarnings
       - name: Check format
