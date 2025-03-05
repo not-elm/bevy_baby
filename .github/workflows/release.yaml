@@ -11,7 +11,6 @@ on:
         required: true
         type: string
 
-# ToDo: adapt names
 env:
   # This variable is used to name release output files.
   GAME_EXECUTABLE_NAME: bevy_game
@@ -81,40 +80,6 @@ jobs:
           tag: ${{ env.VERSION }}
           overwrite: true
 
-  build-linux:
-    runs-on: ubuntu-latest
-    needs: get-version
-    env:
-      VERSION: ${{needs.get-version.outputs.version}}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
-      - name: Build release
-        run: |
-          cargo build --profile dist
-      - name: Prepare release
-        run: |
-          chmod +x target/dist/${{ env.GAME_EXECUTABLE_NAME }}
-          mv target/dist/${{ env.GAME_EXECUTABLE_NAME }} .
-      - name: Bundle release
-        run: |
-          tar -czf ${{ env.GAME_EXECUTABLE_NAME }}_linux.tar.gz ${{ env.GAME_EXECUTABLE_NAME }} assets credits
-      - name: Upload release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_linux.tar.gz
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_linux.tar.gz
-          release_name: ${{ env.VERSION }}
-          tag: ${{ env.VERSION }}
-          overwrite: true
-
   build-windows:
     runs-on: windows-latest
     needs: get-version
@@ -167,102 +132,47 @@ jobs:
           tag: ${{ env.VERSION }}
           overwrite: true
 
-  build-web:
-    runs-on: ubuntu-latest
-    needs: get-version
-    env:
-      VERSION: ${{needs.get-version.outputs.version}}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
-      - name: Install trunk
-        uses: jetli/trunk-action@v0.4.0
-        with:
-          version: latest
-      - name: Add wasm target
-        run: |
-          rustup target add wasm32-unknown-unknown
-      - name: Build Release
-        run: |
-          trunk build --release
-      - name: Optimize Wasm
-        uses: NiklasEi/wasm-opt-action@v2
-        with:
-          file: dist/*.wasm
-      - name: Zip release
-        uses: vimtor/action-zip@v1.1
-        with:
-          files: dist/
-          dest: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
-      - name: Upload release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_web.zip
-          release_name: ${{ env.VERSION }}
-          tag: ${{ env.VERSION }}
-          overwrite: true
+# Want to support for web
+#  build-web:
+#    runs-on: ubuntu-latest
+#    needs: get-version
+#    env:
+#      VERSION: ${{needs.get-version.outputs.version}}
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v4
+#      - name: Install rust toolchain
+#        uses: dtolnay/rust-toolchain@master
+#        with:
+#          toolchain: stable
+#      - name: Install Dependencies
+#        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
+#      - name: Install trunk
+#        uses: jetli/trunk-action@v0.4.0
+#        with:
+#          version: latest
+#      - name: Add wasm target
+#        run: |
+#          rustup target add wasm32-unknown-unknown
+#      - name: Build Release
+#        run: |
+#          trunk build --release
+#      - name: Optimize Wasm
+#        uses: NiklasEi/wasm-opt-action@v2
+#        with:
+#          file: dist/*.wasm
+#      - name: Zip release
+#        uses: vimtor/action-zip@v1.1
+#        with:
+#          files: dist/
+#          dest: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
+#      - name: Upload release
+#        uses: svenstaro/upload-release-action@v2
+#        with:
+#          repo_token: ${{ secrets.GITHUB_TOKEN }}
+#          file: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
+#          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_web.zip
+#          release_name: ${{ env.VERSION }}
+#          tag: ${{ env.VERSION }}
+#          overwrite: true
 
-  build-for-iOS:
-    runs-on: macos-latest
-    timeout-minutes: 30
-    needs: get-version
-    env:
-      VERSION: ${{needs.get-version.outputs.version}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Add iOS targets
-        run: rustup target add aarch64-apple-ios x86_64-apple-ios
-      - name: Build app for iOS
-        run: |
-          cd mobile
-          make xcodebuild-iphone-release
-          mkdir Payload
-          mv build/Build/Products/Release-iphoneos/*.app Payload
-          zip -r ${{ env.GAME_EXECUTABLE_NAME }}.zip Payload
-          mv ${{ env.GAME_EXECUTABLE_NAME }}.zip ${{ env.GAME_EXECUTABLE_NAME }}.ipa
-      - name: Upload release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: mobile/${{ env.GAME_EXECUTABLE_NAME }}.ipa
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_unsigned_ios.ipa
-          release_name: ${{ env.VERSION }}
-          tag: ${{ env.VERSION }}
-          overwrite: true
-
-  build-for-Android:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: get-version
-    env:
-      VERSION: ${{needs.get-version.outputs.version}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Add Android targets
-        # could add more targets like armv7-linux-androideabi here (then also add to cargo-apk config)
-        run: rustup target add aarch64-linux-android
-      - name: Install Cargo APK
-        run: cargo install --force cargo-apk
-      - name: Build app for Android
-        # This uses a debug build, since release builds require keystore configuration
-        # For AAB builds that can be pushed to the Play store, see the release-android-google-play workflow.
-        run: ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME cargo apk build --package mobile
-      - name: Upload release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/debug/apk/${{ env.GAME_OSX_APP_NAME }}.apk
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_android.apk
-          release_name: ${{ env.VERSION }}
-          tag: ${{ env.VERSION }}
-          overwrite: true
