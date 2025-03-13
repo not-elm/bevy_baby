@@ -10,8 +10,6 @@
         <string>bevy_baby</string> <!-- ToDo: this should be the same as your executable name in the release flow -->
         <key>CFBundleIconFile</key>
         <string>AppIcon.icns</string>
-        <key>NSAppleEventsUsageDescription</key>
-        <string>bevy_baby requires access to control other applications for accessibility features.</string>
         <key>CFBundleIdentifier</key>
         <string>not.elm.bevy.baby</string> <!-- ToDo -->
         <key>CFBundleInfoDictionaryVersion</key>
