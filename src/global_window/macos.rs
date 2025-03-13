@@ -1,17 +1,13 @@
 use crate::global_window::{GlobalWindow, GlobalWindows};
 use bevy::math::{Rect, Vec2};
 use core_foundation::array::CFArray;
-use core_foundation::base::{CFRelease, TCFType, TCFTypeRef, ToVoid};
+use core_foundation::base::{TCFType, TCFTypeRef, ToVoid};
 use core_foundation::dictionary::CFDictionary;
 use core_foundation::number::{CFBooleanGetValue, CFNumber, __CFBoolean};
 use core_foundation::string::CFString;
-use core_graphics::display::{kCGNullWindowID, kCGWindowImageDefault, CGRect, CGWindowListCreateImage};
+use core_graphics::display::kCGNullWindowID;
 use core_graphics::window::{kCGWindowListOptionOnScreenOnly, CGWindowListCopyWindowInfo};
-use objc2::__framework_prelude::Retained;
 use objc2::ffi::NSInteger;
-use objc2::rc::autoreleasepool;
-use objc2::{class, msg_send};
-use objc2_app_kit::{NSBitmapImageRep, NSImage};
 use std::ffi::c_void;
 
 pub fn obtain_global_windows() -> Option<GlobalWindows> {
@@ -95,24 +91,8 @@ unsafe fn is_visible_window(window_dict: &CFDictionary) -> bool {
     if !visible {
         return false;
     }
-    if !is_on_screen(window_dict) {
-        return false;
-    }
 
-    has_sized_window(window_dict)
-}
-
-unsafe fn has_sized_window(window_dict: &CFDictionary) -> bool {
-    let Some(window_number) = find_as_cf_number(window_dict, "kCGWindowNumber")
-        .and_then(|number| number.to_i64()) else {
-        return false;
-    };
-    let image = unsafe {
-        window_image(window_number as u32)
-    };
-    image.is_some_and(|(width, height)| {
-        width > 1.0 && height > 1.0
-    })
+    is_on_screen(window_dict)
 }
 
 unsafe fn obtain_window_layer(
@@ -128,30 +108,6 @@ unsafe fn window_number(
 ) -> Option<NSInteger> {
     let window_number = find_as_cf_number(window_dict, "kCGWindowNumber").and_then(|number| number.to_i64())?;
     Some(window_number as NSInteger)
-}
-
-unsafe fn window_image(window_number: u32) -> Option<(f32, f32)> {
-    let cg_image = CGWindowListCreateImage(
-        CGRect::default(),
-        kCGWindowListOptionOnScreenOnly,
-        window_number,
-        kCGWindowImageDefault,
-    );
-    if cg_image.is_null() {
-        return None;
-    }
-
-    let rep: *mut NSBitmapImageRep = msg_send![class!(NSBitmapImageRep), alloc];
-    let rep: *mut NSBitmapImageRep = msg_send![rep, initWithCGImage: cg_image.as_void_ptr()];
-    autoreleasepool(|pool| {
-        let image = Retained::autorelease(NSImage::new(), pool);
-        image.addRepresentation(&*rep);
-        let (width, height) = (image.size().width, image.size().height);
-        CFRelease(cg_image.cast());
-        CFRelease(rep.cast());
-
-        Some((width as f32, height as f32))
-    })
 }
 
 fn is_on_screen(window_dict: &CFDictionary) -> bool {
